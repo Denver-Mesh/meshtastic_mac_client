@@ -1,4 +1,5 @@
 import sys
+import os
 import asyncio
 import qasync
 from PyQt6.QtWidgets import QApplication

@@ -65,12 +65,11 @@ class MeshtasticManager:
             pub.unsubscribe(self.on_receive, "meshtastic.receive")
             pub.unsubscribe(self.on_node_update, "meshtastic.node.updated")
             try:
-                self.client.close()
-            except Exception as e:
-                logger.error(f"Disconnect error: {e}")
-            finally:
+                await self.loop.run_in_executor(None, self.client.close)
                 self.is_connected = False
                 self.client = None
+            except Exception as e:
+                logger.error(f"Disconnect error: {e}")
 
     def on_receive(self, packet, interface):
         """Handle incoming packets."""
@@ -124,3 +123,29 @@ class MeshtasticManager:
         except Exception as e:
             logger.error(f"Send failed: {e}")
             return False
+
+    def get_local_node_name(self):
+        """Returns the Long Name of the connected radio."""
+        if not self.client or not self.is_connected:
+            return None
+
+        try:
+            # For BLE, we fetch the local node info dictionary
+            my_node = self.client.getMyNodeInfo()
+            if not my_node:
+                return None
+
+            # Try to get the ID (usually 'num' or 'user.id')
+            my_id_int = my_node.get('num')
+
+            # Check our local cache using the integer ID
+            node = self.nodes.get(my_id_int)
+            if node and 'user' in node:
+                return node['user'].get('longName')
+
+            # Fallback to the user dictionary inside my_node
+            return my_node.get('user', {}).get('longName')
+
+        except Exception as e:
+            logger.error(f"Failed to get local node name: {e}")
+            return None

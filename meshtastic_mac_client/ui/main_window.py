@@ -60,6 +60,34 @@ class MainWindow(QMainWindow):
         self.manager.on_message_received_cb = self.chat_panel.on_new_message
         self.manager.on_node_updated_cb = self.nodes_panel.on_node_update
 
+        # Connect ConnectionPanel signals to update the Status Bar
+        self.conn_panel.signals.connected.connect(self.on_device_connected)
+        self.conn_panel.signals.disconnected.connect(self.on_device_disconnected)
+
+        # Initial map load from Database
+        self.refresh_map()
+
+    def on_node_updated(self, node, interface):
+        """Called by the manager when a node changes."""
+        # Update the Node List tab
+        self.nodes_panel.on_node_update(node, interface)
+        
+        # Update the Map tab
+        self.refresh_map()
+
+    def refresh_map(self):
+        """Fetch all nodes from DB and refresh the map markers."""
+        all_nodes = self.db.get_nodes()
+        self.map_panel.update_map(all_nodes)
+
+    def on_device_connected(self, address):
+        # Fetch the radio name from the manager
+        radio_name = self.manager.get_local_node_name() or "Radio"
+        self.status_bar.showMessage(f"Connected: {radio_name} ({address})")
+
+    def on_device_disconnected(self):
+        self.status_bar.showMessage("Disconnected")
+
     def update_status(self, message):
         self.status_bar.showMessage(message)
 
@@ -77,7 +105,7 @@ class MainWindow(QMainWindow):
         try:
             # 1. Disconnect the radio if connected
             if self.manager.is_connected:
-                await self.manager.disconnect()
+                await asyncio.wait_for(self.manager.disconnect(), timeout=2.0)
             
             # 2. Close the database connection if needed
             # self.db.close()
@@ -88,7 +116,7 @@ class MainWindow(QMainWindow):
         finally:
             # 3. Stop the qasync loop and actually close the app
             self.loop.stop()
-            QApplication.quit()
+            QApplication.instance().quit()
 
 if __name__ == "__main__":
     import sys
