@@ -57,24 +57,48 @@ class DatabaseManager:
             return cursor.fetchall()
 
     def save_node(self, node):
-        """Save or update node info."""
+        """Save or update node info using dictionary-safe lookups."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
+            user = node.get('user', {})
             cursor.execute('''
-                INSERT OR REPLACE INTO nodes 
+                INSERT OR REPLACE INTO nodes
                 (id, short_name, long_name, snr, battery, last_heard, position_lat, position_lon)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
-                node.id,
-                node.short_name,
-                node.long_name,
-                node.metrics.snr if hasattr(node, 'metrics') and node.metrics else 0,
-                node.device_metrics.battery_level if hasattr(node, 'device_metrics') and node.device_metrics else None,
+                user.get('id'),
+                user.get('shortName'),
+                user.get('longName'),
+                node.get('snr', 0),
+                node.get('device_metrics', {}).get('battery_level'),
                 datetime.now().isoformat(),
-                node.position.lat if hasattr(node, 'position') and node.position else None,
-                node.position.lon if hasattr(node, 'position') and node.position else None
+                node.get('position', {}).get('lat'),
+                node.get('position', {}).get('lon')
             ))
             conn.commit()
+
+    def get_all_nodes(self):
+        """Fetch all nodes from the DB and return a dict keyed by node ID."""
+        nodes = {}
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                # FIX: Query the columns that actually exist
+                cursor.execute("SELECT id, long_name FROM nodes")
+                rows = cursor.fetchall()
+                
+                for row in rows:
+                    # Reconstruct a structure the Manager expects
+                    nodes[row['id']] = {
+                        'user': {
+                            'longName': row['long_name'],
+                            'id': row['id']
+                        }
+                    }
+        except Exception as e:
+            print(f"Error loading nodes from DB: {e}")
+        return nodes
 
     def get_nodes(self):
         with sqlite3.connect(self.db_path) as conn:

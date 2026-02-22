@@ -61,6 +61,33 @@ class MainWindow(QMainWindow):
     def update_status(self, message):
         self.status_bar.showMessage(message)
 
+    def closeEvent(self, event):
+        """Handle graceful shutdown when the user clicks 'X'."""
+        # Create a task to handle the async cleanup
+        asyncio.create_task(self.handle_exit(event))
+        # Ignore the initial close event so we can finish cleanup first
+        event.ignore()
+
+    async def handle_exit(self, event):
+        """Cleanup resources and stop the loop."""
+        self.status_bar.showMessage("Shutting down...")
+        
+        try:
+            # 1. Disconnect the radio if connected
+            if self.manager.is_connected:
+                await self.manager.disconnect()
+            
+            # 2. Close the database connection if needed
+            # self.db.close()
+
+        except Exception as e:
+            print(f"Error during shutdown: {e}")
+        
+        finally:
+            # 3. Stop the qasync loop and actually close the app
+            self.loop.stop()
+            QApplication.quit()
+
 if __name__ == "__main__":
     import sys
     import qasync

@@ -33,13 +33,19 @@ class ChatPanel(QWidget):
 
         self.layout.addLayout(input_layout)
 
-    def on_new_message(self, node_id, role, payload, channel):
-        # Append message to history
+    def on_new_message(self, display_name, role, payload, channel):
+        """Appends message with LongName (hexid) formatting."""
+        if not payload:
+            return
+
         cursor = self.txt_history.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.End)
         
-        role_color = "blue" if role == "USER" else "black"
-        cursor.insertHtml(f"<b style='color:{role_color}'>[{node_id}]</b>: {payload}<br>")
+        role_color = "blue" if role == "USER" else "darkgreen"
+        
+        # We use the display_name passed from the manager which includes <small> tags
+        cursor.insertHtml(f"<b style='color:{role_color}'>[{display_name}]</b>: {payload}<br>")
+        
         self.txt_history.setTextCursor(cursor)
         self.txt_history.ensureCursorVisible()
 

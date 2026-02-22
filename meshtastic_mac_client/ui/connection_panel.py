@@ -14,14 +14,15 @@ class ConnectionPanel(QWidget):
         self.parent = parent
         self.main = parent
         self.signals = ConnectionSignals()
+        self._is_connecting = False  # Add a guard flag
         self.layout = QVBoxLayout(self)
 
-        # Scan Button
+        # ... (Scan button setup)
         self.btn_scan = QPushButton("Scan Devices")
         self.btn_scan.clicked.connect(lambda: asyncio.create_task(self.scan_devices()))
         self.layout.addWidget(self.btn_scan)
 
-        # Device Selection
+        # ... (Combo setup)
         self.layout.addWidget(QLabel("Select Device:"))
         self.combo_devices = QComboBox()
         self.layout.addWidget(self.combo_devices)
@@ -37,32 +38,48 @@ class ConnectionPanel(QWidget):
         self.btn_disconnect.setEnabled(False)
         self.layout.addWidget(self.btn_disconnect)
 
-        # Status
         self.lbl_status = QLabel("Status: Idle")
         self.layout.addWidget(self.lbl_status)
 
     async def scan_devices(self):
         self.lbl_status.setText("Waking up Bluetooth...") # Feedback for the pulse
-        # The manager now handles the double-scan internally
         devices = await self.main.manager.scan_devices()
         
         self.combo_devices.clear()
         for dev in devices:
-            # dev.name will now likely be '🏠_70a9' on the "first" UI click
             self.combo_devices.addItem(dev.name, dev.address)
         
         self.lbl_status.setText(f"Found {len(devices)} devices")
+
     async def connect_device(self):
+        # Don't allow multiple clicks
+        if self._is_connecting or self.main.manager.is_connected:
+            return
+            
         address = self.combo_devices.currentData()
         if not address:
+            self.lbl_status.setText("Status: Select a device first")
             return
         
-        success = await self.main.manager.connect(address)
-        if success:
-            self.btn_connect.setEnabled(False)
-            self.btn_disconnect.setEnabled(True)
-            self.lbl_status.setText("Status: Connected")
-            self.signals.connected.emit(address)
+        self._is_connecting = True
+        self.btn_connect.setEnabled(False)
+        self.btn_scan.setEnabled(False)
+        self.lbl_status.setText(f"Status: Connecting to {self.combo_devices.currentText()}...")
+
+        try:
+            # 2. Call the manager
+            success = await self.main.manager.connect(address)
+            
+            if success:
+                self.btn_disconnect.setEnabled(True)
+                self.lbl_status.setText("Status: Connected")
+                self.signals.connected.emit(address)
+            else:
+                self.btn_connect.setEnabled(True)
+                self.btn_scan.setEnabled(True)
+                self.lbl_status.setText("Status: Connection Failed")
+        finally:
+            self._is_connecting = False
 
     async def disconnect_device(self):
         await self.main.manager.disconnect()
