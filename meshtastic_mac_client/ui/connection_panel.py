@@ -5,6 +5,7 @@ import asyncio
 from meshtastic_mac_client.core.meshtastic_manager import MeshtasticManager
 
 class ConnectionSignals(QObject):
+    connecting = pyqtSignal(str)
     connected = pyqtSignal(str)
     disconnected = pyqtSignal()
 
@@ -64,6 +65,7 @@ class ConnectionPanel(QWidget):
         self._is_connecting = True
         self.btn_connect.setEnabled(False)
         self.btn_scan.setEnabled(False)
+        self.signals.connecting.emit(self.combo_devices.currentText())
         self.lbl_status.setText(f"Status: Connecting to {self.combo_devices.currentText()}...")
 
         try:

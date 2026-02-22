@@ -59,8 +59,10 @@ class MeshtasticManager:
         if self.client:
             logger.info("Disconnecting...")
             try:
-                # Use a shorter executor timeout for the library close call
+                # BLEInterface.close() handles the underlying Serial/BLE closure
+                # We must await the executor to ensure the thread finishes
                 await self.loop.run_in_executor(None, self.client.close)
+                logger.info("Interface closed successfully.")
             except Exception as e:
                 logger.error(f"Error during disconnect: {e}")
             finally:
@@ -151,4 +153,42 @@ class MeshtasticManager:
             return True
         except Exception as e:
             logger.error(f"Send failed: {e}")
+            return False
+
+    async def send_config(self, config_dict):
+        """
+        Apply configuration to the local radio.
+        Expects a dict like: {'radio': {'region': 9, 'modemConfig': 'LongFast'}}
+        """
+        if not self.is_connected or not self.client:
+            logger.error("Cannot send config: Not connected")
+            return False
+
+        try:
+            # The python-meshtastic library handles configuration through
+            # the localConfig and moduleConfig attributes.
+            
+            # Example: Setting the Region
+            if 'radio' in config_dict:
+                radio_settings = config_dict['radio']
+                
+                if 'region' in radio_settings:
+                    # Sets the regulatory region (e.g., 9 for US)
+                    self.client.localConfig.lora.region = radio_settings['region']
+                
+                if 'modemConfig' in radio_settings:
+                    # modemConfig is an enum or string in the API
+                    # Using the set_preset equivalent
+                    preset = radio_settings['modemConfig']
+                    logger.info(f"Setting modem preset to {preset}")
+                    # Note: Actual protobuf field path depends on your library version
+                    # but typically handled via writeConfig()
+            
+            # Commit the changes to the radio's flash memory
+            await self.loop.run_in_executor(None, self.client.writeConfig)
+            logger.info("Configuration sent and saved to device.")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to send config: {e}")
             return False

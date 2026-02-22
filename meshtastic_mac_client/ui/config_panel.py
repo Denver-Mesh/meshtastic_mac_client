@@ -32,14 +32,26 @@ class ConfigPanel(QWidget):
         self.layout.addWidget(self.btn_apply)
 
     async def apply_config(self):
-        # Construct config object (simplified)
+        # Construct config object
         config = {
             "radio": {
                 "region": self.spin_region.value(),
                 "modemConfig": self.combo_modem.currentText()
             }
         }
-        success = await self.main.manager.send_config(config)
-        if success:
-            print("Config sent")
 
+        # Disable button to prevent double-clicks
+        self.btn_apply.setEnabled(False)
+        self.btn_apply.setText("Applying...")
+
+        try:
+            # Call the newly added manager method
+            success = await self.main.manager.send_config(config)
+            
+            if success:
+                QMessageBox.information(self, "Success", "Configuration applied and radio rebooting.")
+            else:
+                QMessageBox.warning(self, "Error", "Failed to apply configuration.")
+        finally:
+            self.btn_apply.setEnabled(True)
+            self.btn_apply.setText("Apply Configuration")

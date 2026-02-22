@@ -62,6 +62,7 @@ class MainWindow(QMainWindow):
         self.manager.on_node_updated_cb = self.nodes_panel.on_node_update
 
         # Connect ConnectionPanel signals to update the Status Bar
+        self.conn_panel.signals.connecting.connect(self.on_connecting)
         self.conn_panel.signals.connected.connect(self.on_device_connected)
         self.conn_panel.signals.disconnected.connect(self.on_device_disconnected)
 
@@ -80,6 +81,9 @@ class MainWindow(QMainWindow):
         """Fetch all nodes from DB and refresh the map markers."""
         all_nodes = self.db.get_nodes()
         self.map_panel.update_map(all_nodes)
+
+    def on_connecting(self, name):
+        self.status_bar.showMessage(f"Connecting to {name}...")
 
     def on_device_connected(self, address):
         # Fetch the radio name from the manager
@@ -106,14 +110,17 @@ class MainWindow(QMainWindow):
 
     async def handle_exit(self, event):
         """Cleanup resources and stop the loop."""
-        self.status_bar.showMessage("Shutting down...")
+        print("Starting graceful shutdown...")
         try:
-            if self.manager and self.manager.is_connected:
-                # Give it 3 seconds, but don't shield it so long it hangs the OS
-                await asyncio.wait_for(self.manager.disconnect(), timeout=3.0)
-        except (asyncio.TimeoutError, Exception) as e:
-            print(f"Shutdown notice: {e}")
+            if self.manager and self.manager.client:
+                # 1. Disconnect first while the loop is still fully healthy
+                # Increase timeout slightly to allow the thread executor to finish
+                await asyncio.wait_for(self.manager.disconnect(), timeout=5.0)
+        except Exception as e:
+            print(f"Shutdown notice (expected if radio busy): {e}")
         finally:
+            # 2. Stop the loop and quit the app
+            # Use call_soon to ensure we aren't stopping mid-task
             self.loop.stop()
             QApplication.instance().quit()
 
