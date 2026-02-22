@@ -1,3 +1,10 @@
+import os
+import sys
+import threading
+import time
+import asyncio
+import logging
+
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QTabWidget,
                              QVBoxLayout, QWidget, QMessageBox, QStatusBar)
 from PyQt6.QtCore import Qt
@@ -12,8 +19,7 @@ from meshtastic_mac_client.ui.config_panel import ConfigPanel
 from meshtastic_mac_client.ui.map_panel import MapPanel
 from meshtastic_mac_client.ui.telemetry_panel import TelemetryPanel
 from meshtastic_mac_client.ui.admin_panel import AdminPanel
-import asyncio
-import logging
+
 logger = logging.getLogger(__name__)
 
 class MainWindow(QMainWindow):
@@ -135,9 +141,20 @@ class MainWindow(QMainWindow):
     async def handle_exit(self, event):
         """Cleanup resources and stop the loop."""
         logger.info("Starting graceful shutdown...")
+        
+        # Start a background "Reaper" thread. If the app is still
+        # running in 3 seconds, it will kill the process regardless of hangs.
+        def reaper():
+            time.sleep(3)
+            logger.info("Failsafe: Force-terminating process.")
+            os._exit(0)
+        
+        threading.Thread(target=reaper, daemon=True).start()
+
         try:
             if self.manager and self.manager.is_connected:
                 logger.info("Requesting manager disconnect...")
+                # Try to be polite for 2 seconds
                 await asyncio.wait_for(self.manager.disconnect(), timeout=2.0)
         except Exception as e:
             logger.warning(f"Shutdown cleanup encountered an issue: {e}")
@@ -146,15 +163,10 @@ class MainWindow(QMainWindow):
             self.loop.stop()
             QApplication.instance().quit()
             
-            # FIXME for hang
-            logger.info("ERROR: program hung!")
-            QTimer.singleShot(1000, lambda: os._exit(0))
+            # If everything closed cleanly, exit immediately
+            os._exit(0)
 
 if __name__ == "__main__":
-    import sys
-    import qasync
-    import asyncio
-    from PyQt6.QtWidgets import QApplication
 
     # Create the QApplication
     app = QApplication(sys.argv)
