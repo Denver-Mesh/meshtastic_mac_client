@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QTabWidget,
                              QVBoxLayout, QWidget, QMessageBox, QStatusBar)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
+from PyQt6.QtCore import QTimer
 from meshtastic_mac_client.core.database import DatabaseManager
 from meshtastic_mac_client.core.meshtastic_manager import MeshtasticManager
 from meshtastic_mac_client.ui.connection_panel import ConnectionPanel
@@ -65,7 +66,7 @@ class MainWindow(QMainWindow):
         self.conn_panel.signals.disconnected.connect(self.on_device_disconnected)
 
         # Initial map load from Database
-        self.refresh_map()
+        QTimer.singleShot(1000, self.refresh_map)
 
     def on_node_updated(self, node, interface):
         """Called by the manager when a node changes."""
