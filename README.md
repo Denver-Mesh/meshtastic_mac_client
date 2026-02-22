@@ -17,6 +17,7 @@ A native, fully-featured desktop application built with **PyQt6** and **qasync**
 
 *   **macOS:** 10.15 (Catalina) or later.
 *   **Python:** 3.10 or higher.
+*   **pipx:** A tool for installing and running Python applications in isolated environments. Install it via Homebrew (`brew install pipx`) or via pip (`pip install pipx`).
 *   **Hardware:** A Meshtastic device (e.g., Heltec V3, RAK4631, T-Echo) with Bluetooth enabled.
 
 ## Installation
@@ -27,19 +28,17 @@ A native, fully-featured desktop application built with **PyQt6** and **qasync**
     cd meshtastic_mac_client
     ```
 
-2.  **Install dependencies:**
-    Create a virtual environment (recommended) and install the required packages:
+2.  **Install the application:**
+    *Note: Ensure you have a `pyproject.toml` or `setup.py` file in the root directory for `pipx install .` to work correctly.*
     ```bash
-    python3 -m venv venv
-    source venv/bin/activate  # On macOS/Linux
-    pip install -r requirements.txt
+    pipx install .
     ```
 
 ## Usage
 
 1.  **Run the application:**
     ```bash
-    python main.py
+    meshtastic-mac-client
     ```
 
 2.  **Grant Bluetooth Permissions:**
