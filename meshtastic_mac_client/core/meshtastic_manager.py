@@ -16,7 +16,7 @@ class MeshtasticManager:
 
     async def scan_devices(self):
         """Scan for Meshtastic BLE devices."""
-        devices = await BleakScanner.discover()
+        devices = await BleakScanner.discover(timeout=10.0)
         meshtastic_devices = []
         for device in devices:
             if device.name and ('Meshtastic' in device.name or 'meshtastic' in device.name.lower()):
