@@ -35,6 +35,10 @@ To ensure Bluetooth stability on macOS, it is recommended to use Python 3.13.
     ```bash
     pipx install --python python3.13 -e . --force    ```
 
+3. ** Clean and Install **
+    ```pipx uninstall meshtastic-mac-client
+    pipx install --python python3.13 -e . --force```
+
 ## Usage
 
 1.  **Run the application:**

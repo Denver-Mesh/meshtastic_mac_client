@@ -1,7 +1,9 @@
-PyQt6==6.6.1
-qasync==0.27.1
-bleak==0.21.0
-meshtastic==1.4.0
-pyqtgraph==0.13.3
-folium==0.15.1
-Pillow==10.1.0
+PyQt6>=6.6.1
+PyQt6-WebEngine>=6.6.0
+qasync>=0.27.1
+meshtastic>=2.7.7
+bleak>=0.21.1
+pyqtgraph>=0.13.3
+folium>=0.15.1
+Pillow>=10.1.0
+pypubsub>=4.0.3

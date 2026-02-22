@@ -9,15 +9,12 @@ description = "A native desktop application for Meshtastic nodes via BLE on macO
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.10"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "Operating System :: MacOS :: MacOS X",
-]
 dependencies = [
     "PyQt6>=6.6.1",
+    "PyQt6-WebEngine>=6.6.0",
     "qasync>=0.27.1",
-    "meshtastic>=2.7.7",  # Required for meshtastic.ble
-    "bleak>=0.21.1",      # Essential for macOS BLE stability
+    "meshtastic>=2.7.7",
+    "bleak>=0.21.1",
     "pyqtgraph>=0.13.3",
     "folium>=0.15.1",
     "Pillow>=10.1.0",
@@ -28,10 +25,5 @@ dependencies = [
 meshtastic-mac-client = "meshtastic_mac_client.main:main"
 
 [tool.setuptools]
-# Use find_packages to automatically detect ui, core, and assets
 packages = {find = {}}
 include-package-data = true
-
-[tool.setuptools.package-data]
-# Ensures any non-python files in assets are included
-"*" = ["assets/*"]
