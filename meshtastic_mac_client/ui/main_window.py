@@ -1,16 +1,16 @@
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QTabWidget, 
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QTabWidget,
                              QVBoxLayout, QWidget, QMessageBox, QStatusBar)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
-from core.database import DatabaseManager
-from core.meshtastic_manager import MeshtasticManager
-from ui.connection_panel import ConnectionPanel
-from ui.chat_panel import ChatPanel
-from ui.node_list_panel import NodeListPanel
-from ui.config_panel import ConfigPanel
-from ui.map_panel import MapPanel
-from ui.telemetry_panel import TelemetryPanel
-from ui.admin_panel import AdminPanel
+from meshtastic_mac_client.core.database import DatabaseManager
+from meshtastic_mac_client.core.meshtastic_manager import MeshtasticManager
+from meshtastic_mac_client.ui.connection_panel import ConnectionPanel
+from meshtastic_mac_client.ui.chat_panel import ChatPanel
+from meshtastic_mac_client.ui.node_list_panel import NodeListPanel
+from meshtastic_mac_client.ui.config_panel import ConfigPanel
+from meshtastic_mac_client.ui.map_panel import MapPanel
+from meshtastic_mac_client.ui.telemetry_panel import TelemetryPanel
+from meshtastic_mac_client.ui.admin_panel import AdminPanel
 
 class MainWindow(QMainWindow):
     def __init__(self):

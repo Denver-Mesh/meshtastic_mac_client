@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
 from PyQt6.QtCore import pyqtSignal
-from core.meshtastic_manager import MeshtasticManager
+from meshtastic_mac_client.core.meshtastic_manager import MeshtasticManager
 
 class AdminPanel(QWidget):
     def __init__(self, main_window):

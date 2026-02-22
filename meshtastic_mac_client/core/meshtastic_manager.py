@@ -1,85 +1,126 @@
-import sqlite3
-import os
-from datetime import datetime
+import asyncio
+import logging
+from bleak import BleakScanner, BleakClient
+from meshtastic import bluetooth_interface, mesh_interface
+from meshtastic.protobuf import mesh_pb2
+from meshtastic_mac_client.core.database import DatabaseManager
 
-class DatabaseManager:
-    def __init__(self, db_path="meshtastic.db"):
-        self.db_path = db_path
-        self.init_db()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-    def init_db(self):
-        """Initialize SQLite tables."""
-        if not os.path.exists(self.db_path):
-            with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.cursor()
-                # Messages table
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS messages (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        node_id TEXT,
-                        role TEXT,
-                        payload TEXT,
-                        channel INTEGER,
-                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
-                # Nodes table
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS nodes (
-                        id TEXT PRIMARY KEY,
-                        short_name TEXT,
-                        long_name TEXT,
-                        snr REAL,
-                        battery INTEGER,
-                        last_heard DATETIME,
-                        position_lat REAL,
-                        position_lon REAL
-                    )
-                ''')
-                conn.commit()
+class MeshtasticManager:
+    def __init__(self, db_manager):
+        self.db = db_manager
+        self.client = None
+        self.device_name = None
+        self.is_connected = False
+        self.loop = asyncio.get_running_loop()
 
-    def save_message(self, node_id, role, payload, channel):
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                INSERT INTO messages (node_id, role, payload, channel)
-                VALUES (?, ?, ?, ?)
-            ''', (node_id, role, payload, channel))
-            conn.commit()
+    async def scan_devices(self):
+        """Scan for Meshtastic BLE devices."""
+        devices = await BleakScanner.discover()
+        meshtastic_devices = []
+        for device in devices:
+            # Meshtastic devices usually advertise 'Meshtastic'
+            if 'Meshtastic' in device.name or 'meshtastic' in device.name.lower():
+                meshtastic_devices.append(device)
+        return meshtastic_devices
 
-    def get_messages(self, limit=50):
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute('''
-                SELECT * FROM messages ORDER BY timestamp DESC LIMIT ?
-            ''', (limit,))
-            return cursor.fetchall()
+    async def connect(self, device_name):
+        """Connect to a specific device using Meshtastic library."""
+        try:
+            # The meshtastic library handles the BLE connection internally
+            # We use the bluetooth_interface which is async
+            self.client = bluetooth_interface.BluetoothInterface(
+                deviceName=device_name,
+                debug=False
+            )
+            
+            # Connect logic
+            await self.client.connect()
+            self.is_connected = True
+            self.device_name = device_name
+            
+            # Start listening
+            self.client.onReceive = self.on_receive
+            self.client.onNode = self.on_node_update
+            
+            logger.info(f"Connected to {device_name}")
+            return True
+        except Exception as e:
+            logger.error(f"Connection failed: {e}")
+            self.is_connected = False
+            return False
 
-    def save_node(self, node):
-        """Save or update node info."""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                INSERT OR REPLACE INTO nodes 
-                (id, short_name, long_name, snr, battery, last_heard, position_lat, position_lon)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                node.id,
-                node.short_name,
-                node.long_name,
-                node.metrics.snr if hasattr(node, 'metrics') and node.metrics else 0,
-                node.device_metrics.battery_level if hasattr(node, 'device_metrics') and node.device_metrics else None,
-                datetime.now().isoformat(),
-                node.position.lat if hasattr(node, 'position') and node.position else None,
-                node.position.lon if hasattr(node, 'position') and node.position else None
-            ))
-            conn.commit()
+    async def disconnect(self):
+        if self.client:
+            await self.client.close()
+            self.is_connected = False
+            self.client = None
 
-    def get_nodes(self):
-        with sqlite3.connect(self.db_path) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute('SELECT * FROM nodes ORDER BY last_heard DESC')
-            return cursor.fetchall()
+    async def send_text(self, text, channel_index=0, destination=None):
+        """Send a text message."""
+        if not self.is_connected:
+            return False
+        
+        try:
+            # destination=None implies broadcast
+            await self.client.sendText(
+                text,
+                channelIndex=channel_index,
+                destinationId=destination
+            )
+            return True
+        except Exception as e:
+            logger.error(f"Send failed: {e}")
+            return False
 
+    async def send_config(self, config):
+        """Send configuration to the node."""
+        if not self.is_connected:
+            return False
+        try:
+            await self.client.sendConfig(config)
+            return True
+        except Exception as e:
+            logger.error(f"Config send failed: {e}")
+            return False
+
+    # --- Callbacks ---
+
+    def on_receive(self, packet, interface):
+        """Handle incoming packets."""
+        # Extract data
+        node_id = packet.get("from", "Unknown")
+        role = packet.get("role", "UNKNOWN")
+        payload = packet.get("decoded", {}).get("payload", "")
+        channel = packet.get("channel", 0)
+        
+        # Persist
+        self.db.save_message(node_id, role, payload, channel)
+        
+        # Trigger UI update (via event loop)
+        asyncio.run_coroutine_threadsafe(
+            self.loop.call_soon_threadsafe(self.on_message_received_cb, node_id, role, payload, channel),
+            self.loop
+        )
+
+    def on_node_update(self, node, interface):
+        """Handle node database updates."""
+        # Persist
+        self.db.save_node(node)
+        
+        # Trigger UI update
+        asyncio.run_coroutine_threadsafe(
+            self.loop.call_soon_threadsafe(self.on_node_updated_cb, node),
+            self.loop
+        )
+
+    # --- UI Callback Slots ---
+    def on_message_received_cb(self, node_id, role, payload, channel):
+        # This will be connected to a signal in the UI
+        pass
+
+    def on_node_updated_cb(self, node):
+        # This will be connected to a signal in the UI
+        pass

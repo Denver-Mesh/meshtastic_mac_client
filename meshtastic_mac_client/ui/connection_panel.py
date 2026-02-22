@@ -1,8 +1,8 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QPushButton, 
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QPushButton,
                              QComboBox, QLabel, QProgressBar)
 from PyQt6.QtCore import pyqtSignal, QObject
 import asyncio
-from core.meshtastic_manager import MeshtasticManager
+from meshtastic_mac_client.core.meshtastic_manager import MeshtasticManager
 
 class ConnectionSignals(QObject):
     connected = pyqtSignal(str)

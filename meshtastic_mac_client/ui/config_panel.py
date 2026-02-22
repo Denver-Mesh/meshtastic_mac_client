@@ -1,7 +1,7 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QFormLayout, 
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QFormLayout,
                              QSpinBox, QComboBox, QPushButton, QGroupBox)
 from PyQt6.QtCore import pyqtSignal
-from core.meshtastic_manager import MeshtasticManager
+from meshtastic_mac_client.core.meshtastic_manager import MeshtasticManager
 
 class ConfigPanel(QWidget):
     def __init__(self, main_window):
