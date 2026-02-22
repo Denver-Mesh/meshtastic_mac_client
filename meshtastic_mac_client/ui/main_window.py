@@ -68,6 +68,7 @@ class MainWindow(QMainWindow):
         # Connect Manager Signals to UI Slots
         self.manager.on_message_received_cb = self.chat_panel.on_new_message
         self.manager.on_node_updated_cb = self.on_node_updated
+        self.manager.on_node_updated_cb = self.update_ui_on_node_change
 
         # Connect ConnectionPanel signals to update the Status Bar
         self.conn_panel.signals.connecting.connect(self.on_connecting)
@@ -125,6 +126,14 @@ class MainWindow(QMainWindow):
 
     def update_status(self, message):
         self.status_bar.showMessage(message)
+
+    def update_ui_on_node_change(self):
+        """Refreshes UI components when node data changes."""
+        nodes = self.manager.nodes.values()
+        # Update the Node List
+        self.node_list_panel.update_nodes(nodes)
+        # Update the Map
+        self.map_panel.update_map(nodes)
 
     def closeEvent(self, event):
         """Handle graceful shutdown when the user clicks 'X'."""

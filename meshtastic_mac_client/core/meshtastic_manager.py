@@ -39,40 +39,16 @@ class MeshtasticManager:
             logger.error(f"Scan failed: {e}")
             return []
 
-    async def connect(self, address):
-        """Connect to a Meshtastic device over BLE."""
+    async def connect(self, device_address):
+        """Connect to a specific device using Meshtastic library."""
         try:
-            logger.info(f"Initiating BLE connection to {address}...")
+            self.client = BLEInterface(address=device_address, noProto=False)
             
-            # The constructor can take 10s just for the scan
-            self.client = await self.loop.run_in_executor(
-                None, lambda: BLEInterface(address)
-            )
-            
-            # Give the radio a 2-second 'breath' to start sending the NodeDB
-            await asyncio.sleep(2.0)
-
-            max_retries = 30  # Increased to 30 seconds
-            while max_retries > 0:
-                if hasattr(self.client, 'myId') and self.client.myId:
-                    logger.info(f"Handshake complete! Local ID: {self.client.myId}")
-                    self.is_connected = True
-                    return True
-                
-                if max_retries % 5 == 0:
-                    logger.info(f"Waiting for radio handshake... {max_retries}s remaining")
-                
-                await asyncio.sleep(1.0)
-                max_retries -= 1
-
-            logger.error("Handshake timed out: Radio connected but failed to provide ID.")
-            await self.disconnect()
-            return False
-
+            self.is_connected = True
+            self.device_name = device_address
+            return True
         except Exception as e:
-            logger.error(f"BLE Interface failure: {e}")
-            self.is_connected = False
-            self.client = None
+            logger.error(f"Failed to connect: {e}")
             return False
 
     async def disconnect(self):
