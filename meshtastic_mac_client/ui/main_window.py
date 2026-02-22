@@ -148,7 +148,7 @@ class MainWindow(QMainWindow):
             
             # FIXME for hang
             logger.info("ERROR: program hung!")
-            QTimer.singleShot(1000, lambda: sys.exit(0))
+            QTimer.singleShot(1000, lambda: os._exit(0))
 
 if __name__ == "__main__":
     import sys

@@ -42,30 +42,38 @@ class MeshtasticManager:
     async def connect(self, address):
         """Connect to a Meshtastic device over BLE."""
         try:
-            logger.info(f"Attempting BLE handshake with {address}...")
+            logger.info(f"Initiating BLE connection to {address}...")
             
-            # 1. Create the interface
-            self.client = await self.loop.run_in_executor(None, lambda: BLEInterface(address))
-            
-            # 2. POLL FOR READINESS
-            # We wait up to 10 seconds for the 'myId' attribute to be populated by the library
-            max_retries = 10
+            # Use a more protective way to call the blocking constructor
+            # We add a 10-second timeout to the executor itself
+            try:
+                self.client = await asyncio.wait_for(
+                    self.loop.run_in_executor(None, lambda: BLEInterface(address)),
+                    timeout=15.0
+                )
+            except asyncio.TimeoutError:
+                logger.error("The Bluetooth driver timed out during initialization.")
+                return False
+
+            # After constructor, wait for the radio to populate 'myId'
+            max_retries = 20
             while max_retries > 0:
                 if hasattr(self.client, 'myId') and self.client.myId:
-                    logger.info(f"Connected successfully. Local ID: {self.client.myId}")
+                    logger.info(f"Connected! Local ID: {self.client.myId}")
                     self.is_connected = True
                     return True
                 
-                logger.info("Waiting for radio handshake (myId)...")
                 await asyncio.sleep(1.0)
                 max_retries -= 1
 
-            logger.error("Connection established but radio failed to provide Node ID.")
+            logger.error("Handshake timed out: myId not found.")
+            await self.disconnect()
             return False
 
         except Exception as e:
-            logger.error(f"Detailed connection failure: {e}", exc_info=True)
+            logger.error(f"Critical BLE Interface error: {e}", exc_info=True)
             self.is_connected = False
+            self.client = None
             return False
 
     async def disconnect(self):
