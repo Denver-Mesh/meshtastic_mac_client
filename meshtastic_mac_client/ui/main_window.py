@@ -77,10 +77,10 @@ class MainWindow(QMainWindow):
         if self.manager.nodes:
             initial_nodes = list(self.manager.nodes.values())
             self.map_panel.update_map(initial_nodes)
-            self.node_list_panel.refresh_list()
+            self.nodes_panel.refresh_list()
 
         # Connect the manager's update callback so new updates also refresh the map
-        self.manager.on_node_updated_cb = self.handle_node_update
+        self.manager.on_node_updated_cb = self.on_node_updated
 
     def on_node_updated(self, node):
         """Called when a node's info is updated."""
