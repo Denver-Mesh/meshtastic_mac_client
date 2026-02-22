@@ -42,13 +42,16 @@ class ConnectionPanel(QWidget):
         self.layout.addWidget(self.lbl_status)
 
     async def scan_devices(self):
-        self.lbl_status.setText("Scanning...")
+        self.lbl_status.setText("Waking up Bluetooth...") # Feedback for the pulse
+        # The manager now handles the double-scan internally
         devices = await self.main.manager.scan_devices()
+        
         self.combo_devices.clear()
         for dev in devices:
+            # dev.name will now likely be '🏠_70a9' on the "first" UI click
             self.combo_devices.addItem(dev.name, dev.address)
+        
         self.lbl_status.setText(f"Found {len(devices)} devices")
-
     async def connect_device(self):
         address = self.combo_devices.currentData()
         if not address:
