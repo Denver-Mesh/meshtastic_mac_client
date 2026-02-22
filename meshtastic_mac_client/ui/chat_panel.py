@@ -28,8 +28,7 @@ class ChatPanel(QWidget):
         input_layout.addWidget(self.txt_input)
 
         self.btn_send = QPushButton("Send")
-        self.btn_send.clicked.connect(self.send_message)
-        input_layout.addWidget(self.btn_send)
+        self.btn_send.clicked.connect(lambda: asyncio.create_task(self.send_message()))        input_layout.addWidget(self.btn_send)
 
         self.layout.addLayout(input_layout)
 

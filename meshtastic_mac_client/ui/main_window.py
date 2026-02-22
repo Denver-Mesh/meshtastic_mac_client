@@ -22,8 +22,6 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Meshtastic macOS Client")
         self.resize(1200, 800)
 
-        self.manager = MeshtasticManager(self.db, self.loop)
-
         # UI Setup
         central_widget = QWidget()
         self.setCentralWidget(central_widget)

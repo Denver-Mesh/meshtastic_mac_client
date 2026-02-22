@@ -27,8 +27,8 @@ class ConnectionPanel(QWidget):
         self.layout.addWidget(self.combo_devices)
 
         # Connect Button
-        self.btn_connect = QPushButton("Connect")
-        self.btn_connect.clicked.connect(self.connect_device)
+        self.btn_scan.clicked.connect(lambda: asyncio.create_task(self.scan_devices()))
+        self.btn_connect.clicked.connect(lambda: asyncio.create_task(self.connect_device()))
         self.layout.addWidget(self.btn_connect)
 
         # Disconnect Button
