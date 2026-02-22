@@ -5,19 +5,25 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "meshtastic_mac_client"
 version = "0.1.0"
-description = "A native, fully-featured desktop application built with PyQt6 and qasync to manage Meshtastic nodes via Bluetooth Low Energy (BLE) on macOS."
+description = "A native desktop application for Meshtastic nodes via BLE on macOS."
 readme = "README.md"
-license = {file = "LICENSE.txt"}
+license = {file = "LICENSE"}
 requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Operating System :: MacOS :: Mac OS X 10.6 or newer"
+    "Operating System :: MacOS :: MacOS X",
+]
+dependencies = [
+    "PyQt6",
+    "qasync",
+    "meshtastic",
+    "bleak",
 ]
 
-[tool.setuptools]
-include-package-data = true
-packages = ["meshtastic_mac_client"]
-
 [project.scripts]
-"meshtastic-mac-client" = "meshtastic_mac_client.main:main"
+meshtastic-mac-client = "meshtastic_mac_client.main:main"
 
+[tool.setuptools]
+# This tells setuptools to include your subfolders (ui, core, assets)
+packages = ["meshtastic_mac_client", "meshtastic_mac_client.core", "meshtastic_mac_client.ui"]
+include-package-data = true
