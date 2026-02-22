@@ -1,0 +1,7 @@
+PyQt6==6.6.1
+qasync==0.27.1
+bleak==0.21.0
+meshtastic==1.4.0
+pyqtgraph==0.13.3
+folium==0.15.1
+Pillow==10.1.0
