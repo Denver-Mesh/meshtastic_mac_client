@@ -83,7 +83,7 @@ class MainWindow(QMainWindow):
     def on_device_connected(self, address):
         # Fetch the radio name from the manager
         radio_name = self.manager.get_local_node_name() or "Radio"
-        self.status_bar.showMessage(f"Connected: {radio_name} ({address})")
+        self.status_bar.showMessage(f"Connected: {radio_name})")
 
     def on_device_disconnected(self):
         self.status_bar.showMessage("Disconnected")
@@ -93,29 +93,35 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """Handle graceful shutdown when the user clicks 'X'."""
-        # Create a task to handle the async cleanup
+        # Hide the window immediately so the user sees the app 'closing'
+        self.hide()
+
+        # Create the task for cleanup
         asyncio.create_task(self.handle_exit(event))
-        # Ignore the initial close event so we can finish cleanup first
+
+        # Ignore the event for now; handle_exit will call QApplication.quit()
+        # which will properly destroy everything once cleanup is done.
         event.ignore()
 
     async def handle_exit(self, event):
         """Cleanup resources and stop the loop."""
         self.status_bar.showMessage("Shutting down...")
-        
+
         try:
             # 1. Disconnect the radio if connected
+            # We use a shield to ensure the disconnect finishes even if the window closes
             if self.manager.is_connected:
-                await asyncio.wait_for(self.manager.disconnect(), timeout=2.0)
-            
-            # 2. Close the database connection if needed
-            # self.db.close()
+                await asyncio.shield(asyncio.wait_for(self.manager.disconnect(), timeout=2.0))
 
+        except asyncio.TimeoutError:
+            print("Shutdown: Disconnect timed out.")
         except Exception as e:
             print(f"Error during shutdown: {e}")
-        
+
         finally:
-            # 3. Stop the qasync loop and actually close the app
+            # 2. Crucially: Stop the qasync loop first
             self.loop.stop()
+            # 3. Then tell the application to exit
             QApplication.instance().quit()
 
 if __name__ == "__main__":
