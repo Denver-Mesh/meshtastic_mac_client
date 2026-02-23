@@ -59,3 +59,4 @@ docs/build/
 .pytest_cache/
 .ruff_cache/
 pylance/
+.aider*
